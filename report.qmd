@@ -1,0 +1,50 @@
+---
+title: "Income-Based Inequality in Mental Health Service Use in Canada"
+subtitle: "Analysis of the 2022 Mental Health and Access to Care Survey (MHACS)"
+author: "Vishwa Chaudhary"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: cosmo
+    code-fold: true
+    self-contained: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(tidyverse)
+library(survey)
+library(srvyr)
+library(knitr)
+library(kableExtra)
+
+mhacs_clean <- read_rds("data_clean/mhacs_clean.rds")
+
+mhacs_clean2 <- mhacs_clean %>%
+  mutate(
+    inc3 = case_when(
+      inc_hh %in% 1:5   ~ "low",
+      inc_hh %in% 6:10  ~ "middle",
+      inc_hh %in% 11:15 ~ "high",
+      TRUE ~ NA_character_
+    ),
+    inc3 = factor(inc3) %>% relevel(ref = "high")
+  )
+
+svy_overall    <- read_csv("outputs/svy_overall.csv",            show_col_types = FALSE)
+svy_chars      <- read_csv("outputs/svy_chars.csv",              show_col_types = FALSE)
+or_all_models  <- read_csv("outputs/or_all_models.csv",          show_col_types = FALSE)
+pred_df        <- read_csv("outputs/predicted_probs.csv",        show_col_types = FALSE)
+svy_disorder   <- read_csv("outputs/svy_disorder_subgroup.csv",  show_col_types = FALSE)
+svy_inc3_unmet <- read_csv("outputs/svy_inc3_unmet.csv",         show_col_types = FALSE)
+```
+
+------------------------------------------------------------------------

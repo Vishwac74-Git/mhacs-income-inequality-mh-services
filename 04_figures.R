@@ -27,7 +27,6 @@ dim(mhacs_clean2)
 table (mhacs_clean2$inc3, useNA = "always")
 
 ## 3 PREDICTED PROBABILITIES from Model 3
-# Step 1: Refit Model 3 (fully adjusted)
 model3 <- svyglm(
   mh_service_use ~ inc3 + age_grp + gender + any_disorder_12m,
   design = mhacs_svy2,
@@ -35,9 +34,6 @@ model3 <- svyglm(
 )
 
 # Step 2: Create a "prediction grid"
-# We hold age, gender, disorder constant at their most common values
-# and only vary income — so we isolate the pure income effect
-# median age_grp = 4, gender = 1 (female), any_disorder_12m = 0 (no disorder)
 pred_grid <- expand.grid(
   inc3             = factor(c("low", "middle", "high"),
                             levels = c("high", "low", "middle")),
@@ -63,9 +59,6 @@ pred_df <- pred_grid %>%
 pred_df
 
 # 4. FIGURE 3 — Predicted probabilities plot
-# geom_point = the dot (predicted probability)
-# geom_errorbar = vertical line showing 95% CI
-# coord_flip not needed — income on x axis is clear here
 
 fig3 <- ggplot(pred_df,
                aes(x = inc3, y = prob, color = inc3)) +
@@ -104,8 +97,6 @@ ggsave("figs/fig3_predicted_probs.png", fig3,
 message("Fig 3 saved ✅")
 
 # 5. FIGURE 4 — Unmet need by income group
-# We already have this data from Day 3 outputs — just reload it
-# This avoids recalculating and keeps figures consistent with descriptives
 
 svy_inc3_unmet <- read_csv("outputs/svy_inc3_unmet.csv")
 
@@ -162,6 +153,78 @@ library(tidyverse)
 library(survey)
 library(srvyr)
 
+# 6. SUBGROUP ANALYSIS — service use among those WITH a disorder only
+
+mhacs_disorder <- mhacs_clean2 %>%
+  filter(any_disorder_12m == 1)  # keep only people with a disorder
+
+nrow(mhacs_disorder)
+table(mhacs_disorder$inc3, useNA = "always")
+
+svy_disorder <- svydesign(
+  ids     = ~1,
+  weights = ~WTS_M,
+  data    = mhacs_disorder
+) %>% as_survey()
+
+svy_disorder_inc3 <- svy_disorder %>%
+  group_by(inc3) %>%
+  summarise(
+    prop_service = survey_mean(mh_service_use, na.rm = TRUE),
+    n = unweighted(n())
+  ) %>%
+  filter(!is.na(inc3))
+
+svy_disorder_inc3
+
+# 7. FIGURE 5 — Service use among disorder subgroup by income
+fig5_data <- svy_disorder_inc3 %>%
+  mutate(
+    inc3    = factor(inc3,
+                     levels = c("low", "middle", "high"),
+                     labels = c("Low Income", "Middle Income", "High Income")),
+    pct     = prop_service * 100,
+    ci_low  = (prop_service - 1.96 * prop_service_se) * 100,
+    ci_high = (prop_service + 1.96 * prop_service_se) * 100
+  )
+
+fig5 <- ggplot(fig5_data, aes(x = inc3, y = pct, fill = inc3)) +
+  geom_col(width = 0.55, show.legend = FALSE) +
+  geom_errorbar(aes(ymin = ci_low, ymax = ci_high),
+                width = 0.15, linewidth = 0.7) +
+  geom_text(aes(label = paste0(round(pct, 1), "%")),
+            vjust = -1.8, fontface = "bold", size = 4) +
+  scale_fill_manual(values = c(
+    "Low Income"    = "#D73027",
+    "Middle Income" = "#FC8D59",
+    "High Income"   = "#4575B4"
+  )) +
+  scale_y_continuous(limits = c(0, 75)) +
+  labs(
+    title    = "Mental Health Service Use Among Those With a Disorder",
+    subtitle = "Restricted to respondents with a 12-month mental disorder, MHACS 2022",
+    x        = "Household Income Group",
+    y        = "% Using Mental Health Services",
+    caption  = "Error bars represent 95% confidence intervals.\nSample sizes: Low n=47, Middle n=298, High n=1,077."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    axis.text.x      = element_text(size = 11)
+  )
+
+fig5
+
+ggsave("figs/fig5_service_use_disorder_subgroup.png", fig5,
+       width = 7, height = 5, dpi = 300)
+
+write_csv(svy_disorder_inc3, "outputs/svy_disorder_subgroup.csv")
+
+message("Fig 5 saved ✅")
+
+write_csv(pred_df, "outputs/predicted_probs.csv")
+message("All Day 5 outputs saved ✅")
 
 
 

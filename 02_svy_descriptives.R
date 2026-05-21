@@ -86,7 +86,6 @@ svy_overall <- mhacs_svy2 %>%
     n = unweighted(n())
   )
 svy_overall
-# This gives you the single overall % with SE
 
 # 5. Sample characteristics table by income group
 svy_chars <- mhacs_svy2 %>%
@@ -145,8 +144,6 @@ write_csv(svy_inc3_unmet,   "outputs/svy_inc3_unmet.csv")
 write_csv(svy_overall,      "outputs/svy_overall.csv")
 write_csv(svy_chars,        "outputs/svy_chars.csv")
 
-# Check how unmet_need is coded
-table(mhacs_clean$unmet_need)
 
-# Also check INCDVP20 for better income grouping
+table(mhacs_clean$unmet_need)
 summary(mhacs_clean$INCDVP20)

@@ -170,7 +170,7 @@ ggsave("figs/fig2_forest_plot_income_OR.png", fig2,
 
 message("Forest plot saved ✅")
 
-# ── METHODS STUB (copy to report.qmd on Day 6) ───────────────────────────────
+# ── METHODS STUB
 # Statistical Analysis:
 # Survey-weighted logistic regression was conducted using the svyglm() function
 # from the survey package in R (v4.5.0). Three sequential models were built:
